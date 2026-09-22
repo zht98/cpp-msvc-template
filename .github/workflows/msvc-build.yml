@@ -21,7 +21,7 @@ jobs:
       run: rc resource.rc
 
     - name: Build
-      run: cl /EHsc launcher.c resource.res /link /subsystem:windows /MANIFEST:EMBED /MANIFESTINPUT:launcher.exe.manifest
+      run: cl /EHsc launcher.c resource.res user32.lib /link /subsystem:windows /MANIFEST:EMBED /MANIFESTINPUT:launcher.exe.manifest
 
     - name: Verify build
       run: dir launcher.exe
