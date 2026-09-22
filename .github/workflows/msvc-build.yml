@@ -1,27 +1,29 @@
-name: MSVC C/C++ Build
+name: MSVC Build
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    # 1. 拉取仓库代码
-    - uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-    # 2. 配置 MSVC 编译环境
-    - name: Set up MSVC environment
+    - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
 
-    # 3. 配置 CMake 项目 (配合你的 README 说明使用 VS 2022 生成器)
-    - name: Configure CMake
-      run: cmake -B build -G "Visual Studio 17 2022" -A x64
+    - name: Build
+      run: cl /EHsc launcher.c
 
-    # 4. 执行编译
-    - name: Build Project
-      run: cmake --build build --config Release
+    - name: Verify build
+      run: dir launcher.exe
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: launcher
+        path: launcher.exe
