@@ -17,19 +17,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         *lastSlash = '\0';         // 截断字符串，使得 exePath 变为当前目录
         strcpy(workDir, exePath);  // 保存工作目录
         
-        // 拼接出 WolfNewOrder_x64.exe 的绝对路径
-        strcat(exePath, "\\WolfNewOrder_x64.exe");
+        // 拼接出 WolfOldBlood_x64.exe 的绝对路径
+        strcat(exePath, "\\WolfOldBlood_x64.exe");
     } else {
         MessageBoxA(NULL, "路径解析失败！", "错误", MB_OK | MB_ICONERROR);
         return 1;
     }
 
-    // 3. 检查 WolfNewOrder_x64.exe 是否存在
+    // 3. 检查 WolfOldBlood_x64.exe 是否存在
     DWORD dwAttrib = GetFileAttributesA(exePath);
     if (dwAttrib == INVALID_FILE_ATTRIBUTES || (dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
         MessageBoxA(
             NULL, 
-            "未找到游戏主程序 WolfNewOrder_x64.exe！\n\n请确保启动器已放置在游戏根目录下。", 
+            "未找到游戏主程序 WolfOldBlood_x64.exe！\n\n请确保启动器已放置在游戏根目录下。", 
             "启动失败", 
             MB_OK | MB_ICONERROR
         );
@@ -53,7 +53,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
 
-    // 6. 启动游戏主程序（不传任何多余启动参数，保持原生全屏与声音）
+    // 6. 启动游戏主程序
     if (CreateProcessA(
             exePath,     // 目标可执行文件路径
             NULL,        // 命令行参数
@@ -71,7 +71,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         CloseHandle(pi.hThread);
         return 0;
     } else {
-        MessageBoxA(NULL, "无法启动 WolfNewOrder_x64.exe，请检查系统权限或依赖环境！", "错误", MB_OK | MB_ICONERROR);
+        MessageBoxA(NULL, "无法启动 WolfOldBlood_x64.exe，请检查系统权限或依赖环境！", "错误", MB_OK | MB_ICONERROR);
         return 1;
     }
 }
