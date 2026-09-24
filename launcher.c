@@ -36,16 +36,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 4. 【核心优化】模拟 Win + M 快捷键，将所有窗口（包括文件夹）最小化
+    // 4. 【核心解决抢焦点】模拟按下 Win + M，将所有文件夹和后台窗口最小化
     keybd_event(VK_LWIN, 0, 0, 0);
     keybd_event('M', 0, 0, 0);
     keybd_event('M', 0, KEYEVENTF_KEYUP, 0);
     keybd_event(VK_LWIN, 0, KEYEVENTF_KEYUP, 0);
 
-    // 稍微延迟 100 毫秒，确保系统完成最小化动作
+    // 延时 100ms 确保窗口最小化动作执行完毕
     Sleep(100);
 
-    // 5. 初始化进程结构体并启动游戏
+    // 5. 初始化进程结构体
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
 
@@ -53,7 +53,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
 
-    // 6. 启动游戏主程序
+    // 6. 启动游戏主程序（不传任何多余启动参数，保持原生全屏与声音）
     if (CreateProcessA(
             exePath,     // 目标可执行文件路径
             NULL,        // 命令行参数
@@ -66,7 +66,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             &si, 
             &pi)) {
         
-        // 启动成功，关闭句柄并退出启动器
+        // 启动成功，关闭句柄并退出 launcher
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         return 0;
