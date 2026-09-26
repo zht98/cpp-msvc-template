@@ -26,7 +26,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 3. 锁定工作目录（保证音频驱动正常加载）
+    // 3. 锁定工作目录（保证音频 DLL 正常加载）
     SetCurrentDirectoryA(workDir);
 
     // 4. 检查 RTCWCoop.x64.exe 是否存在
@@ -41,9 +41,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 5. 参数精简：移除 r_noborder 1，防止渲染上下文丢失导致最小化后无信号
+    // 5. 【核心修复】：
+    // 显式传入 +set r_fullscreen 0 阻止显示模式切换（防 HDMI 掉信号）
+    // 配合 +set s_driver dsound +set s_initsound 1 锁定音频
     snprintf(cmdArgs, sizeof(cmdArgs), 
-        "\"%s\" +set fs_game ET +set r_mode -1 +set r_customwidth 1280 +set r_customheight 1024 +set s_driver dsound +set s_initsound 1 +set s_khz 44", 
+        "\"%s\" +set fs_game ET +set r_fullscreen 0 +set r_mode -1 +set r_customwidth 1280 +set r_customheight 1024 +set s_driver dsound +set s_initsound 1 +set s_khz 44", 
         exePath);
 
     // 6. 初始化进程结构体
@@ -53,7 +55,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_SHOWNORMAL; // 以标准窗口运行，防止启动即被最小化
+    si.wShowWindow = SW_SHOWMAXIMIZED; // 强制以最大化窗口展示，防止被压入后台
     ZeroMemory(&pi, sizeof(pi));
 
     // 7. 启动游戏主程序
@@ -69,7 +71,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             &si, 
             &pi)) {
         
-        // 启动后直接退出 launcher，把窗口控制权完全交还给系统和游戏本身
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         return 0;
