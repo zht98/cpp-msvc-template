@@ -10,19 +10,6 @@ void MinimizeAllWindows() {
     keybd_event(VK_LWIN, 0, KEYEVENTF_KEYUP, 0);
 }
 
-// 强制解除窗口最小化并将其拉到最前台
-void ForceBringToFront(HWND hwnd) {
-    if (IsIconic(hwnd)) {
-        ShowWindow(hwnd, SW_RESTORE); // 如果被最小化了，强行还原
-    } else {
-        ShowWindow(hwnd, SW_SHOWMAXIMIZED); // 否则最大化展示
-    }
-    
-    // 强制赋予焦点
-    SetForegroundWindow(hwnd);
-    SetFocus(hwnd);
-}
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     char exePath[MAX_PATH];
     char workDir[MAX_PATH];
@@ -47,7 +34,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 3. 锁定工作目录
+    // 3. 锁定工作目录（保证声音与资源加载正常）
     SetCurrentDirectoryA(workDir);
 
     // 4. 检查游戏主程序是否存在
@@ -67,9 +54,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         "\"%s\" +set fs_game ET +set r_fullscreen 0 +set r_mode -1 +set r_customwidth 1280 +set r_customheight 1024 +set s_driver dsound +set s_initsound 1 +set s_khz 44", 
         exePath);
 
-    // 6. 清场：收起所有后台窗口
+    // 6. 清场：收起所有后台窗口，并给予 300ms 缓冲，防止与显卡初始化冲突
     MinimizeAllWindows();
-    Sleep(200);
+    Sleep(300);
 
     // 7. 初始化进程结构体
     STARTUPINFOA si;
@@ -94,20 +81,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             &si, 
             &pi)) {
         
-        // 9. 循环检测游戏窗口（最多等待 3 秒），一旦找到立刻解除最小化并弹回前台
-        HWND hwndGame = NULL;
-        for (int i = 0; i < 30; i++) {
-            Sleep(100);
-            hwndGame = FindWindowA(NULL, "RTCWCoop");
-            if (!hwndGame) {
-                hwndGame = FindWindowA("RTCWCoop", NULL);
-            }
-            if (hwndGame) {
-                ForceBringToFront(hwndGame);
-                break;
-            }
-        }
-
+        // 启动后直接释放句柄退出，让游戏平稳进行 OpenGL 初始化，不再手动去抓取窗口
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         return 0;
