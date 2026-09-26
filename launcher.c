@@ -26,7 +26,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 3. 锁定工作目录（解决音频驱动 DLL 找不到导致的无声问题）
+    // 3. 锁定工作目录（保证音频驱动正常加载）
     SetCurrentDirectoryA(workDir);
 
     // 4. 检查 RTCWCoop.x64.exe 是否存在
@@ -41,9 +41,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 5. 构建带兼容性参数的命令行
+    // 5. 参数精简：移除 r_noborder 1，防止渲染上下文丢失导致最小化后无信号
     snprintf(cmdArgs, sizeof(cmdArgs), 
-        "\"%s\" +set fs_game ET +set r_mode -1 +set r_customwidth 1280 +set r_customheight 1024 +set r_fullscreen 0 +set r_noborder 1 +set s_driver dsound +set s_initsound 1 +set s_khz 44", 
+        "\"%s\" +set fs_game ET +set r_mode -1 +set r_customwidth 1280 +set r_customheight 1024 +set s_driver dsound +set s_initsound 1 +set s_khz 44", 
         exePath);
 
     // 6. 初始化进程结构体
@@ -53,16 +53,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_SHOW;
+    si.wShowWindow = SW_SHOWNORMAL; // 以标准窗口运行，防止启动即被最小化
     ZeroMemory(&pi, sizeof(pi));
 
-    // 7. 允许刚启动的子进程抢占前台焦点
-    AllowSetForegroundWindow(ASFW_ANY);
-
-    // 8. 启动游戏主程序
+    // 7. 启动游戏主程序
     if (CreateProcessA(
             exePath,     // 目标可执行文件路径
-            cmdArgs,     // 完整兼容命令行参数
+            cmdArgs,     // 命令行参数
             NULL,        // 进程安全属性
             NULL,        // 线程安全属性
             FALSE,       // 句柄继承
@@ -72,18 +69,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             &si, 
             &pi)) {
         
-        // 【关键修复：避免 HDMI 丢信号】
-        // 给予游戏 500ms 创建窗口和初始化 DWM 渲染，并强行赋予前台焦点
-        Sleep(500);
-        AllowSetForegroundWindow(pi.dwProcessId);
-        
-        // 尝试获取窗口句柄并置顶
-        HWND hwndGame = FindWindowA(NULL, "RTCWCoop");
-        if (hwndGame) {
-            SetForegroundWindow(hwndGame);
-            ShowWindow(hwndGame, SW_SHOW);
-        }
-
+        // 启动后直接退出 launcher，把窗口控制权完全交还给系统和游戏本身
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         return 0;
