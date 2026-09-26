@@ -2,6 +2,28 @@
 #include <string.h>
 #include <stdio.h>
 
+// 强制将指定窗口拉到系统最前台并获取焦点的函数
+void ForceForegroundWindow(HWND hwnd) {
+    DWORD currentThreadID = GetCurrentThreadId();
+    DWORD foregroundThreadID = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+
+    if (currentThreadID != foregroundThreadID) {
+        AttachThreadInput(currentThreadID, foregroundThreadID, TRUE);
+        SetForegroundWindow(hwnd);
+        SetFocus(hwnd);
+        AttachThreadInput(currentThreadID, foregroundThreadID, FALSE);
+    } else {
+        SetForegroundWindow(hwnd);
+        SetFocus(hwnd);
+    }
+
+    if (IsIconic(hwnd)) {
+        ShowWindow(hwnd, SW_RESTORE);
+    } else {
+        ShowWindow(hwnd, SW_SHOW);
+    }
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     char exePath[MAX_PATH];
     char workDir[MAX_PATH];
@@ -26,7 +48,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 3. 锁定工作目录（保证音频 DLL 正常加载）
+    // 3. 锁定工作目录（保证声音正常）
     SetCurrentDirectoryA(workDir);
 
     // 4. 检查 RTCWCoop.x64.exe 是否存在
@@ -41,9 +63,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 5. 【核心修复】：
-    // 显式传入 +set r_fullscreen 0 阻止显示模式切换（防 HDMI 掉信号）
-    // 配合 +set s_driver dsound +set s_initsound 1 锁定音频
+    // 5. 保持验证成功的画质/音频兼容启动参数
     snprintf(cmdArgs, sizeof(cmdArgs), 
         "\"%s\" +set fs_game ET +set r_fullscreen 0 +set r_mode -1 +set r_customwidth 1280 +set r_customheight 1024 +set s_driver dsound +set s_initsound 1 +set s_khz 44", 
         exePath);
@@ -55,7 +75,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_SHOWMAXIMIZED; // 强制以最大化窗口展示，防止被压入后台
+    si.wShowWindow = SW_SHOWMAXIMIZED;
     ZeroMemory(&pi, sizeof(pi));
 
     // 7. 启动游戏主程序
@@ -71,6 +91,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             &si, 
             &pi)) {
         
+        // 8. 循环等待游戏创建窗口，并强行将焦点拉到最前台
+        HWND hwndGame = NULL;
+        for (int i = 0; i < 20; i++) { // 最多尝试等待 2 秒 (20 * 100ms)
+            Sleep(100);
+            
+            // 查找 RTCWCoop 游戏窗口
+            hwndGame = FindWindowA(NULL, "RTCWCoop");
+            if (!hwndGame) {
+                // 如果按窗口名没找到，按窗口类名查找
+                hwndGame = FindWindowA("RTCWCoop", NULL);
+            }
+
+            if (hwndGame) {
+                // 找到窗口，使用线程附加技术强行夺取前台焦点
+                ForceForegroundWindow(hwndGame);
+                break;
+            }
+        }
+
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         return 0;
