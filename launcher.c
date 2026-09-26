@@ -26,7 +26,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 3. 锁定工作目录（保证音频与资源加载正常）
+    // 3. 锁定工作目录
     SetCurrentDirectoryA(workDir);
 
     // 4. 检查游戏主程序是否存在
@@ -41,13 +41,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 5. 【核心完美参数组合】：
-    // +set r_fullscreen 1  : 开启原生全屏，压制桌面/文件夹，解决抢焦点与降级任务栏
-    // +set in_nograb 0      : 恢复正常捕获，消除系统双鼠标光标
-    // +set in_mouse 1       : 锁定系统标准鼠标驱动
-    // +set com_unfocused 1  : 切焦不断音，彻底解决无声问题
+    // 5. 【完美的原始完整启动参数】：完美还原 Steam 批处理的全部参数
     snprintf(cmdArgs, sizeof(cmdArgs), 
-        "\"%s\" +set fs_game ET +set r_fullscreen 1 +set in_nograb 0 +set in_mouse 1 +set com_unfocused 1", 
+        "\"%s\" +set fs_homepath \"C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\1379630\\2600726979\" +set fs_game ET", 
         exePath);
 
     // 6. 初始化进程结构体
