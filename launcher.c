@@ -26,7 +26,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 3. 强制锁定工作目录为当前文件夹（解决桌面快捷方式无声）
+    // 3. 锁定工作目录（解决音频驱动 DLL 找不到导致的无声问题）
     SetCurrentDirectoryA(workDir);
 
     // 4. 检查 RTCWCoop.x64.exe 是否存在
@@ -41,11 +41,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 5. 构建带全套兼容性参数的命令行：
-    // +set fs_game ET              加载合作模组
-    // +set r_mode -1 +set r_customwidth 1280 +set r_customheight 1024 设定分辨率
-    // +set r_fullscreen 0 +set r_noborder 1  无边框全屏（防 HDMI 掉信号）
-    // +set s_driver dsound +set s_initsound 1 +set s_khz 44  DirectSound 驱动（保证声音）
+    // 5. 构建带兼容性参数的命令行
     snprintf(cmdArgs, sizeof(cmdArgs), 
         "\"%s\" +set fs_game ET +set r_mode -1 +set r_customwidth 1280 +set r_customheight 1024 +set r_fullscreen 0 +set r_noborder 1 +set s_driver dsound +set s_initsound 1 +set s_khz 44", 
         exePath);
@@ -60,7 +56,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     si.wShowWindow = SW_SHOW;
     ZeroMemory(&pi, sizeof(pi));
 
-    // 7. 允许刚启动的进程抢占前台焦点（解决文件夹遮挡）
+    // 7. 允许刚启动的子进程抢占前台焦点
     AllowSetForegroundWindow(ASFW_ANY);
 
     // 8. 启动游戏主程序
@@ -72,10 +68,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             FALSE,       // 句柄继承
             0,           // 创建标志
             NULL,        // 环境变量
-            workDir,     // 显式指定工作目录
+            workDir,     // 工作目录
             &si, 
             &pi)) {
         
+        // 【关键修复：避免 HDMI 丢信号】
+        // 给予游戏 500ms 创建窗口和初始化 DWM 渲染，并强行赋予前台焦点
+        Sleep(500);
+        AllowSetForegroundWindow(pi.dwProcessId);
+        
+        // 尝试获取窗口句柄并置顶
+        HWND hwndGame = FindWindowA(NULL, "RTCWCoop");
+        if (hwndGame) {
+            SetForegroundWindow(hwndGame);
+            ShowWindow(hwndGame, SW_SHOW);
+        }
+
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         return 0;
