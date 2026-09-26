@@ -26,7 +26,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 3. 锁定工作目录（保证音频与资源文件路径完全正确）
+    // 3. 锁定工作目录（保证音频与资源加载正常）
     SetCurrentDirectoryA(workDir);
 
     // 4. 检查游戏主程序是否存在
@@ -41,8 +41,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 5. 【核心修复】：移除容易引发闪断和无声的强制分辨率与 dsound 参数，只保留原生模组参数
-    snprintf(cmdArgs, sizeof(cmdArgs), "\"%s\" +set fs_game ET", exePath);
+    // 5. 【终极修复参数】：
+    // +set in_nograb 1 : 核心！禁止老引擎强行锁定/锁死鼠标指针，防止死锁
+    // +set in_mouse 1  : 强制使用标准 Windows 鼠标输入驱动
+    // +set com_unfocused 1 : 允许游戏在后台/未获取焦点时继续正常渲染和输出声音（防止无声）
+    snprintf(cmdArgs, sizeof(cmdArgs), 
+        "\"%s\" +set fs_game ET +set in_nograb 1 +set in_mouse 1 +set com_unfocused 1", 
+        exePath);
 
     // 6. 初始化进程结构体
     STARTUPINFOA si;
