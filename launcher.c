@@ -26,10 +26,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 3. 锁定工作目录（保证音频与资源加载正常）
+    // 3. 锁定工作目录（解决相对路径导致的配置文件/音频 DLL 加载失败）
     SetCurrentDirectoryA(workDir);
 
-    // 4. 检查游戏主程序是否存在
+    // 4. 检查 RTCWCoop.x64.exe 是否存在
     DWORD dwAttrib = GetFileAttributesA(exePath);
     if (dwAttrib == INVALID_FILE_ATTRIBUTES || (dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
         MessageBoxA(
@@ -41,22 +41,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 5. 稳定验证成功的画质/音频兼容启动参数
-    snprintf(cmdArgs, sizeof(cmdArgs), 
-        "\"%s\" +set fs_game ET +set r_fullscreen 0 +set r_mode -1 +set r_customwidth 1280 +set r_customheight 1024 +set s_driver dsound +set s_initsound 1 +set s_khz 44", 
-        exePath);
+    // 5. 【核心修复】：只传递基础模组参数，去除容易引发显卡闪断和无声的强制分辨率与 dsound 参数
+    snprintf(cmdArgs, sizeof(cmdArgs), "\"%s\" +set fs_game ET", exePath);
 
-    // 6. 初始化进程结构体：使用系统原生激活指令（SW_SHOW），不做任何强行压低/最小化前台窗口的动作
+    // 6. 初始化进程结构体
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
 
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_SHOW; // 以原生正常前台方式展露
+    si.wShowWindow = SW_SHOW;
     ZeroMemory(&pi, sizeof(pi));
 
-    // 7. 允许子进程顺畅继承和请求前台焦点
+    // 7. 允许子进程顺畅抢占前台
     AllowSetForegroundWindow(ASFW_ANY);
 
     // 8. 启动游戏主程序
@@ -72,6 +70,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             &si, 
             &pi)) {
         
+        // 【关键保护】：启动后后台挂起等待 2.5 秒，给游戏充分的时间绑定 DirectX/OpenGL 画面和音频设备
+        // 避免 launcher 过早退出导致系统将焦点切回文件夹或桌面
+        Sleep(2500);
+
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         return 0;
