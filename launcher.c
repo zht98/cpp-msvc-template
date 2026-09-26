@@ -16,7 +16,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // 2. 裁剪工作目录并拼接目标程序名
     char* lastSlash = strrchr(exePath, '\\');
     if (lastSlash != NULL) {
-        *lastSlash = '\0';         // 截断字符串，使 exePath 变成目录
+        *lastSlash = '\0';         // 截断字符串，使 exePath 变成 coop 目录
         strcpy(workDir, exePath);  // 保存工作目录
         
         // 拼接 RTCWCoop.x64.exe 路径
@@ -26,7 +26,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 3. 锁定工作目录
+    // 3. 锁定工作目录为 coop
     SetCurrentDirectoryA(workDir);
 
     // 4. 检查游戏主程序是否存在
@@ -34,16 +34,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     if (dwAttrib == INVALID_FILE_ATTRIBUTES || (dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
         MessageBoxA(
             NULL, 
-            "未找到游戏主程序 RTCWCoop.x64.exe！\n\n请确保启动器已放置在游戏 coop 目录下。", 
+            "未找到游戏主程序 RTCWCoop.x64.exe！\n\n请确保启动器已放置在 coop 目录下。", 
             "启动失败", 
             MB_OK | MB_ICONERROR
         );
         return 1;
     }
 
-    // 5. 【完美的原始完整启动参数】：完美还原 Steam 批处理的全部参数
+    // 5. 【相对路径参数】：
+    // 使用 ".." 指向上一级 RealRTCW 根目录，无论游戏放在 C 盘、I 盘还是移动硬盘均可完美通用
     snprintf(cmdArgs, sizeof(cmdArgs), 
-        "\"%s\" +set fs_homepath \"C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\1379630\\2600726979\" +set fs_game ET", 
+        "\"%s\" +set fs_homepath \"..\" +set fs_game ET", 
         exePath);
 
     // 6. 初始化进程结构体
