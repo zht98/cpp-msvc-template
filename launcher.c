@@ -41,12 +41,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 5. 【终极修复参数】：
-    // +set in_nograb 1 : 核心！禁止老引擎强行锁定/锁死鼠标指针，防止死锁
-    // +set in_mouse 1  : 强制使用标准 Windows 鼠标输入驱动
-    // +set com_unfocused 1 : 允许游戏在后台/未获取焦点时继续正常渲染和输出声音（防止无声）
+    // 5. 【核心完美参数组合】：
+    // +set r_fullscreen 1  : 开启原生全屏，压制桌面/文件夹，解决抢焦点与降级任务栏
+    // +set in_nograb 0      : 恢复正常捕获，消除系统双鼠标光标
+    // +set in_mouse 1       : 锁定系统标准鼠标驱动
+    // +set com_unfocused 1  : 切焦不断音，彻底解决无声问题
     snprintf(cmdArgs, sizeof(cmdArgs), 
-        "\"%s\" +set fs_game ET +set in_nograb 1 +set in_mouse 1 +set com_unfocused 1", 
+        "\"%s\" +set fs_game ET +set r_fullscreen 1 +set in_nograb 0 +set in_mouse 1 +set com_unfocused 1", 
         exePath);
 
     // 6. 初始化进程结构体
