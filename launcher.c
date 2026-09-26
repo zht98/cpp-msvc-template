@@ -2,6 +2,14 @@
 #include <string.h>
 #include <stdio.h>
 
+// 模拟按下 Win + D 键，一键最小化桌面上所有的窗口（包括浏览器、文件夹等）
+void MinimizeAllWindows() {
+    keybd_event(VK_LWIN, 0, 0, 0);
+    keybd_event('D', 0, 0, 0);
+    keybd_event('D', 0, KEYEVENTF_KEYUP, 0);
+    keybd_event(VK_LWIN, 0, KEYEVENTF_KEYUP, 0);
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     char exePath[MAX_PATH];
     char workDir[MAX_PATH];
@@ -26,7 +34,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 3. 锁定工作目录（保证音频与资源加载正常）
+    // 3. 锁定工作目录（保证声音与资源加载正常）
     SetCurrentDirectoryA(workDir);
 
     // 4. 检查游戏主程序是否存在
@@ -46,9 +54,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         "\"%s\" +set fs_game ET +set r_fullscreen 0 +set r_mode -1 +set r_customwidth 1280 +set r_customheight 1024 +set s_driver dsound +set s_initsound 1 +set s_khz 44", 
         exePath);
 
-    // 6. 结束资源管理器（清空所有文件夹窗口，防抢焦点）
-    WinExec("taskkill /f /im explorer.exe", SW_HIDE);
-    Sleep(200);
+    // 6. 【核心干预】：向系统发送 Win + D，强制最小化包括浏览器在内的所有前台窗口
+    MinimizeAllWindows();
+    Sleep(200); // 给系统 200ms 完成所有窗口收起动画
 
     // 7. 初始化进程结构体
     STARTUPINFOA si;
@@ -73,16 +81,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             &si, 
             &pi)) {
         
-        // 9. 游戏拉起后在后台静默恢复资源管理器
-        Sleep(1000);
-        WinExec("explorer.exe", SW_HIDE);
-
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         return 0;
     } else {
-        // 如果启动失败，必须重新拉起 explorer.exe
-        WinExec("explorer.exe", SW_HIDE);
         MessageBoxA(NULL, "无法启动 RTCWCoop.x64.exe！", "错误", MB_OK | MB_ICONERROR);
         return 1;
     }
