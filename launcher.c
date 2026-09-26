@@ -38,27 +38,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 4. 【解决抢焦点】模拟按下 Win + M，将所有文件夹和后台窗口最小化
-    keybd_event(VK_LWIN, 0, 0, 0);
-    keybd_event('M', 0, 0, 0);
-    keybd_event('M', 0, KEYEVENTF_KEYUP, 0);
-    keybd_event(VK_LWIN, 0, KEYEVENTF_KEYUP, 0);
-
-    // 延时 100ms 确保窗口最小化动作执行完毕
-    Sleep(100);
-
-    // 5. 构建带参数的命令行字符串 (必须传入 +set fs_game ET)
+    // 4. 构建带参数的命令行字符串
     snprintf(cmdArgs, sizeof(cmdArgs), "\"%s\" +set fs_game ET", exePath);
 
-    // 6. 初始化进程结构体
+    // 5. 初始化进程结构体，指定窗口正常显示 (SW_SHOW)
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
 
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_SHOW; // 确保不被隐藏，让 HDMI 正常握手
     ZeroMemory(&pi, sizeof(pi));
 
-    // 7. 启动游戏主程序
+    // 6. 启动游戏主程序
     if (CreateProcessA(
             exePath,     // 目标可执行文件路径
             cmdArgs,     // 传递命令行参数 "+set fs_game ET"
@@ -67,16 +60,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             FALSE,       // 句柄继承
             0,           // 创建标志
             NULL,        // 环境变量
-            workDir,     // 工作目录 (确保声音/绘图驱动 DLL 能加载)
+            workDir,     // 工作目录
             &si, 
             &pi)) {
         
-        // 启动成功，关闭句柄并退出 launcher
+        // 7. 等待游戏窗口创建并强制拉到最前层（代替 Win+M）
+        AllowSetForegroundWindow(pi.dwProcessId);
+        
+        // 关闭句柄并退出 launcher
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         return 0;
     } else {
-        MessageBoxA(NULL, "无法启动 RTCWCoop.x64.exe，请检查系统权限或依赖环境！", "错误", MB_OK | MB_ICONERROR);
+        MessageBoxA(NULL, "无法启动 RTCWCoop.x64.exe！", "错误", MB_OK | MB_ICONERROR);
         return 1;
     }
 }
