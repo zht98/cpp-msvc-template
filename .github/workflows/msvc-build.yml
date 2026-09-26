@@ -33,15 +33,17 @@ jobs:
         name: launcher
         path: launcher.exe
 
-    # 自动发布到 Releases
+    # 自动发布到 Releases（固定版本号）
     - name: Create Release and Upload Asset
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v1.0.${{ github.run_number }}
-        name: Launcher Release v1.0.${{ github.run_number }}
+        tag_name: v1.0.0
+        name: Launcher Release v1.0.0
         body: |
           包含自定义图标、隐藏黑框及路径保护功能的自动构建版本。
         files: |
           launcher.exe
+        make_latest: true
+        overwrite: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
