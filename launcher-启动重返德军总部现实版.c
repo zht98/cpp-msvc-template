@@ -27,7 +27,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // 3. 【核心保护】检查 RealRTCW.x64.exe 是否存在
     DWORD dwAttrib = GetFileAttributesA(exePath);
     if (dwAttrib == INVALID_FILE_ATTRIBUTES || (dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
-        // 文件不存在或为文件夹，弹出提示框并退出
         MessageBoxA(
             NULL, 
             "未找到游戏主程序 RealRTCW.x64.exe！\n\n请确保 launcher.exe 已放置在 RealRTCW 游戏根目录下。", 
@@ -37,7 +36,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    // 4. 初始化进程结构体
+    // 4. 构造强制覆盖参数的命令行字符串（防止子游戏退出时篡改配置文件）
+    char cmdArgs[1024];
+    wsprintfA(cmdArgs, "\"%s\" +set r_fullscreen 0 +set r_noborder 1 +set s_useopenal 0 +set s_initsound 1", exePath);
+
+    // 5. 初始化进程结构体
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
 
@@ -45,10 +48,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
 
-    // 5. 启动游戏主程序
+    // 6. 启动游戏主程序并传入强制命令行参数
     if (CreateProcessA(
             exePath,     // 目标可执行文件路径
-            NULL,        // 命令行参数
+            cmdArgs,     // 传入强制无边框和禁用 OpenAL 的参数
             NULL,        // 进程安全属性
             NULL,        // 线程安全属性
             FALSE,       // 句柄继承
